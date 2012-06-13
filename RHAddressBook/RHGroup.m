@@ -84,7 +84,7 @@
     [self performRecordAction:^(ABRecordRef recordRef) {
         CFErrorRef errorRef = NULL;
         success = ABGroupAddMember(recordRef, person.recordRef, &errorRef);
-        if (errorRef) NSLog(@"RHGroup: Error adding member. %@", errorRef);
+        if (errorRef) RHLog(@"RHGroup: Error adding member. %@", errorRef);
     } waitUntilDone:YES];
     return success;
 }
@@ -123,7 +123,7 @@
             if (person) {
                 [members addObject:person];
             } else {
-                NSLog(@"Failed to find member");
+                RHLog(@"Failed to find member");
             }
         }
         
@@ -150,7 +150,7 @@
             if (person){
                 [members addObject:person]; 
             } else {
-                NSLog(@"Failed to find member");
+                RHLog(@"Failed to find member");
             }
         }
         CFRelease(memberRefs);

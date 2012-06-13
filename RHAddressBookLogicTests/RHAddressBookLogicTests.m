@@ -45,9 +45,9 @@
 
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        NSLog(@"__IPHONE_OS_VERSION_MIN_REQUIRED = %i", __IPHONE_OS_VERSION_MIN_REQUIRED);
-        NSLog(@"__IPHONE_OS_VERSION_MAX_ALLOWED = %i", __IPHONE_OS_VERSION_MAX_ALLOWED);
-        NSLog(@"CURRENT VERSION = %@", [[UIDevice currentDevice] systemVersion]);
+        RHLog(@"__IPHONE_OS_VERSION_MIN_REQUIRED = %i", __IPHONE_OS_VERSION_MIN_REQUIRED);
+        RHLog(@"__IPHONE_OS_VERSION_MAX_ALLOWED = %i", __IPHONE_OS_VERSION_MAX_ALLOWED);
+        RHLog(@"CURRENT VERSION = %@", [[UIDevice currentDevice] systemVersion]);
     });
 }
 
@@ -1097,7 +1097,7 @@
 #import <CoreLocation/CoreLocation.h>
 -(void)testPersonGeocoding{
     if (![RHAddressBook isGeocodingSupported]){
-        NSLog(@"Geo Not Available");
+        RHLog(@"Geo Not Available");
         return;
     }
 

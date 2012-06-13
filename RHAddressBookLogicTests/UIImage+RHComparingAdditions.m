@@ -75,7 +75,7 @@ CGFloat UIImagePercentageDifferenceBetweenImagesWithTolerance(UIImage* image1, U
             }
             
             if (!image1 || !image2){
-                NSLog(@"Error: Failed to scale an image for comparison.");
+                RHLog(@"Error: Failed to scale an image for comparison.");
                 return 1.0f;
             }
 
