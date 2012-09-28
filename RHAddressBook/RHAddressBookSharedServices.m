@@ -83,19 +83,22 @@ void RHAddressBookExternalChangeCallback (ABAddressBookRef addressBook, CFDictio
 }
 
 #pragma mark - singleton
-static RHAddressBookSharedServices *_sharedInstance = nil;
+static __strong RHAddressBookSharedServices *_sharedInstance = nil;
 
-static dispatch_once_t onceToken;
 +(id)sharedInstance{
-    dispatch_once(&onceToken, ^{
-        _sharedInstance = [[super allocWithZone:NULL] init];
-    });
+    if (_sharedInstance) return _sharedInstance; //for performance reasons, check outside @synchronized
+    
+    @synchronized([self class]){
+        if (!_sharedInstance){
+            _sharedInstance = [[super allocWithZone:NULL] init];
+        }
+    }
     
     return _sharedInstance;
 }
 
 +(id)allocWithZone:(NSZone *)zone{
-    return [[self sharedInstance] retain];
+    return arc_retain([self sharedInstance]);
 }
 
 -(id)init {
@@ -104,15 +107,44 @@ static dispatch_once_t onceToken;
     if (self) {
         
         //because NSThread retains its target, we use a placeholder object that contains the threads main method
-        RHAddressBookThreadMain *threadMain = [[[RHAddressBookThreadMain alloc] init] autorelease];
+        RHAddressBookThreadMain *threadMain = arc_autorelease([[RHAddressBookThreadMain alloc] init]);
         _addressBookThread = [[NSThread alloc] initWithTarget:threadMain selector:@selector(threadMain:) object:nil];
         [_addressBookThread setName:[NSString stringWithFormat:@"RHAddressBookSharedServicesThread for %p", self]];
         [_addressBookThread start];
-        
-        [_addressBookThread performBlock:^{
-            _addressBook = ABAddressBookCreate();
-        } waitUntilDone:YES];
 
+        
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
+        if (ABAddressBookCreateWithOptions != NULL){
+            __block CFErrorRef errorRef = NULL;
+            [_addressBookThread rh_performBlock:^{
+                _addressBook = ABAddressBookCreateWithOptions(nil, &errorRef);
+            }];
+            
+            if (!_addressBook){
+                //bail
+                RHErrorLog(@"Error: Failed to create RHAddressBookSharedServices instance. Underlying ABAddressBookCreateWithOptions() failed with error: %@", errorRef);
+                if (errorRef) CFRelease(errorRef);
+
+                [_addressBookThread cancel];
+                arc_release_nil(_addressBookThread);
+                
+                arc_release_nil(self);
+                
+                return nil;
+            }
+            
+        } else {
+#endif //end iOS6+
+            
+            [_addressBookThread rh_performBlock:^{
+                _addressBook = ABAddressBookCreate();
+            }];
+            
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
+        }
+#endif //end iOS6+
+        
+        
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 50000
         if ([RHAddressBookSharedServices isGeocodingSupported]){
             [self loadCache];
@@ -130,6 +162,8 @@ static dispatch_once_t onceToken;
     return self;
 }
 
+#if ARC_IS_NOT_ENABLED
+
 -(id)retain{
     return self;
 }
@@ -146,18 +180,22 @@ static dispatch_once_t onceToken;
     return self;
 }
 
+#endif // end ARC_IS_NOT_ENABLED
+
 #pragma mark - cleanup
 -(void)dealloc {
     //do stuff (even though we are a singleton)
     [self deregisterForAddressBookChanges];
 
     if (_addressBook) { CFRelease(_addressBook); _addressBook = NULL; }
-    [_addressBookThread release]; _addressBookThread = nil;
+    
+    [_addressBookThread cancel];
+    arc_release_nil(_addressBookThread);
 
-    [_cache release]; _cache = nil;
+    arc_release_nil(_cache);
 
-    [_timer release];
-    [super dealloc];
+    arc_release_nil(_timer);
+    arc_super_dealloc();
 }
 
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 50000
@@ -165,12 +203,11 @@ static dispatch_once_t onceToken;
 #pragma mark - cache management
 -(void)loadCache{
     RHLog(@"");
-    [_cache release];
-    
-    _cache = [[NSKeyedUnarchiver unarchiveObjectWithFile:[self cacheFilePath]] retain];
+    arc_release(_cache);
+    _cache = arc_retain([NSKeyedUnarchiver unarchiveObjectWithFile:[self cacheFilePath]]);
     
     //if unarchive failed or on first run
-    if (!_cache) _cache = [[NSMutableArray array] retain];
+    if (!_cache) _cache = [[NSMutableArray alloc] init];
     
 }
 
@@ -222,7 +259,7 @@ static dispatch_once_t onceToken;
                 // not valid, create a new entry
                 RHAddressBookGeoResult* new = [[RHAddressBookGeoResult alloc] initWithPersonID:personID addressID:addressID];
                 [newCache addObject:new];
-                [new release];
+                arc_release(new);
             }
                         
             //======================================================================
@@ -235,8 +272,8 @@ static dispatch_once_t onceToken;
     CFRelease(people);
     
     //swap old cache with the new
-    [_cache release];
-    _cache = [newCache retain];
+    arc_release(_cache);
+    _cache = arc_retain(newCache);
     
     [self processAddressesMissingLocationInfo];
     [self writeCache]; //get it to disk asap
@@ -247,7 +284,7 @@ static dispatch_once_t onceToken;
 -(RHAddressBookGeoResult*)cacheEntryForPersonID:(ABRecordID)pid addressID:(ABPropertyID)aid{
     for (RHAddressBookGeoResult *entry in _cache) {
         if (entry.personID == pid && entry.addressID == aid){
-            return [[entry retain] autorelease];
+            return arc_autorelease(arc_retain(entry));
         }
     }
     
@@ -279,7 +316,7 @@ static dispatch_once_t onceToken;
     
     
     if (!_timer){
-        _timer = [[NSTimer scheduledTimerWithTimeInterval:PROCESS_ADDRESS_EVERY_SECONDS target:self selector:@selector(processTimerFire) userInfo:nil repeats:YES] retain];
+        _timer = arc_retain([NSTimer scheduledTimerWithTimeInterval:PROCESS_ADDRESS_EVERY_SECONDS target:self selector:@selector(processTimerFire) userInfo:nil repeats:YES]);
     }
 }
 
@@ -295,8 +332,7 @@ static dispatch_once_t onceToken;
     //if we have been disabled, stop working
     if (![self.class isPreemptiveGeocodingEnabled]){
         [_timer invalidate];
-        [_timer release];
-        _timer = nil;
+        arc_release_nil(_timer);
         RHLog(@"Location Lookup has been disabled.");
         return;
     }
@@ -313,8 +349,8 @@ static dispatch_once_t onceToken;
     //we are done, all addresses processed
     [self writeCache];
     [_timer invalidate];
-    [_timer release];
-    _timer = nil;
+    arc_release_nil(_timer);
+
     RHLog(@"Location Lookup Processing done.");
     
 }
@@ -348,7 +384,7 @@ static dispatch_once_t onceToken;
         }
     } 
     
-    return [results autorelease];
+    return arc_autorelease(results);
 }
 
 -(RHAddressBookGeoResult*)geoResultClosestToLocation:(CLLocation*)location{
@@ -436,7 +472,7 @@ NSString static * RHAddressBookSharedServicesPreemptiveGeocodingEnabled = @"RHAd
         return;
     }
 
-    ABAddressBookRegisterExternalChangeCallback(_addressBook, RHAddressBookExternalChangeCallback, self); //use the context as a pointer to self
+    ABAddressBookRegisterExternalChangeCallback(_addressBook, RHAddressBookExternalChangeCallback, (__bridge void *)(self)); //use the context as a pointer to self
     
 }
 
@@ -449,7 +485,7 @@ NSString static * RHAddressBookSharedServicesPreemptiveGeocodingEnabled = @"RHAd
     // when unregistering a callback both the callback and the context
     // need to match the ones that were registered.
     if (_addressBook){
-        ABAddressBookUnregisterExternalChangeCallback(_addressBook,  RHAddressBookExternalChangeCallback, self);
+        ABAddressBookUnregisterExternalChangeCallback(_addressBook,  RHAddressBookExternalChangeCallback, (__bridge void *)(self));
     }
     
 }
@@ -459,7 +495,7 @@ void RHAddressBookExternalChangeCallback (ABAddressBookRef addressBook, CFDictio
     
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 50000
     if ([RHAddressBookSharedServices isGeocodingSupported]){
-        [(RHAddressBookSharedServices*)context rebuildCache]; //use the context as a pointer to self
+        [(__bridge RHAddressBookSharedServices*)context rebuildCache]; //use the context as a pointer to self
     }
 #endif //end iOS5+
     

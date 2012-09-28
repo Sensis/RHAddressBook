@@ -80,17 +80,17 @@
     CFStringRef nameRef = ABPersonCopyLocalizedPropertyName(propertyID);
     NSString *name = nil;
     if (nameRef){
-        name = [NSString stringWithString:(NSString*)nameRef];
+        name = [NSString stringWithString:(__bridge NSString*)nameRef];
         CFRelease(nameRef);
     }
     return name;
 }
 
 +(NSString*)localizedLabel:(NSString*)label{
-    CFStringRef localizedRef = ABAddressBookCopyLocalizedLabel((CFStringRef)label);
+    CFStringRef localizedRef = ABAddressBookCopyLocalizedLabel((__bridge CFStringRef)label);
     NSString *localized = nil;
     if (localizedRef){
-        localized = [NSString stringWithString:(NSString*)localizedRef];
+        localized = [NSString stringWithString:(__bridge NSString*)localizedRef];
         CFRelease(localizedRef);
     }
     return localized;
@@ -109,7 +109,7 @@
     RHSource *source = [_addressBook sourceForABRecordRef:sourceRef];    
     if (sourceRef) CFRelease(sourceRef);
     
-    return [[source retain] autorelease];
+    return arc_autorelease(arc_retain(source));
 }
 
 
@@ -169,7 +169,7 @@
     
     UIImage *image = nil;
     if (dataRef){
-        image = [UIImage imageWithData:(NSData*)dataRef];
+        image = [UIImage imageWithData:(__bridge NSData*)dataRef];
         CFRelease(dataRef);
     }
     return image;
@@ -178,23 +178,30 @@
 
 -(BOOL)setImage:(UIImage*)image{
     //extern bool ABPersonSetImageData(ABRecordRef person, CFDataRef imageData, CFErrorRef* error);
-    __block CFErrorRef cfError = NULL;
+    __block CFErrorRef errorRef = NULL;
     __block BOOL result = NO;
-    CFDataRef imageData = (CFDataRef)UIImagePNGRepresentation(image);
+    CFDataRef imageDataRef = (CFDataRef) ARCBridgingRetain(UIImagePNGRepresentation(image));
     [self performRecordAction:^(ABRecordRef recordRef) {
-        result = ABPersonSetImageData(recordRef, imageData, &cfError);
+        result = ABPersonSetImageData(recordRef, imageDataRef, &errorRef);
     } waitUntilDone:YES];
-    if (cfError) RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), cfError);
+    if (!result) {
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), errorRef);
+        if (errorRef) CFRelease(errorRef);
+    }
+    if (imageDataRef) CFRelease(imageDataRef);
     return result;
 }
 
 -(BOOL)removeImage{
-    __block CFErrorRef cfError = NULL;
+    __block CFErrorRef errorRef = NULL;
     __block BOOL result = NO;
     [self performRecordAction:^(ABRecordRef recordRef) {
-        result = ABPersonRemoveImageData(recordRef, &cfError);
+        result = ABPersonRemoveImageData(recordRef, &errorRef);
     } waitUntilDone:YES];
-    if (cfError) RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), cfError);
+    if (!result) {
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), errorRef);
+        if (errorRef) CFRelease(errorRef);
+    }
     return result;
 }
 
@@ -207,7 +214,7 @@
 -(void)setFirstName:(NSString*)firstName{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)firstName forPropertyID:kABPersonFirstNameProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -218,7 +225,7 @@
 -(void)setLastName:(NSString*)lastName{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)lastName forPropertyID:kABPersonLastNameProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -230,7 +237,7 @@
 -(void)setMiddleName:(NSString*)middleName{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)middleName forPropertyID:kABPersonMiddleNameProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -242,7 +249,7 @@
 -(void)setPrefix:(NSString*)prefix{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)prefix forPropertyID:kABPersonPrefixProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -254,7 +261,7 @@
 -(void)setSuffix:(NSString*)suffix{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)suffix forPropertyID:kABPersonSuffixProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -266,7 +273,7 @@
 -(void)setNickname:(NSString*)nickname{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)nickname forPropertyID:kABPersonNicknameProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -278,7 +285,7 @@
 -(void)setFirstNamePhonetic:(NSString*)firstNamePhonetic{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)firstNamePhonetic forPropertyID:kABPersonFirstNamePhoneticProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -290,7 +297,7 @@
 -(void)setLastNamePhonetic:(NSString*)lastNamePhonetic{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)lastNamePhonetic forPropertyID:kABPersonLastNamePhoneticProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -302,7 +309,7 @@
 -(void)setMiddleNamePhonetic:(NSString*)middleNamePhonetic{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)middleNamePhonetic forPropertyID:kABPersonMiddleNamePhoneticProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -314,7 +321,7 @@
 -(void)setOrganization:(NSString*)organization{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)organization forPropertyID:kABPersonOrganizationProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -326,7 +333,7 @@
 -(void)setJobTitle:(NSString*)jobTitle{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)jobTitle forPropertyID:kABPersonJobTitleProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -338,7 +345,7 @@
 -(void)setDepartment:(NSString*)department{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)department forPropertyID:kABPersonDepartmentProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -350,7 +357,7 @@
 -(void)setEmails:(RHMultiStringValue*)emails{
     NSError *error = nil;
     if (![self setMultiValue:emails forPropertyID:kABPersonEmailProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -362,7 +369,7 @@
 -(void)setBirthday:(NSDate*)birthday{
     NSError *error = nil;
     if (![self setBasicValue:(CFDateRef)birthday forPropertyID:kABPersonBirthdayProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -374,7 +381,7 @@
 -(void)setNote:(NSString*)note{
     NSError *error = nil;
     if (![self setBasicValue:(CFStringRef)note forPropertyID:kABPersonNoteProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -399,7 +406,7 @@
 -(void)setAddresses:(RHMultiDictionaryValue*)addresses{
     NSError *error = nil;
     if (![self setMultiValue:addresses forPropertyID:kABPersonAddressProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -412,7 +419,7 @@
 -(void)setDates:(RHMultiDateTimeValue*)dates{
     NSError *error = nil;
     if (![self setMultiValue:dates forPropertyID:kABPersonDateProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -425,7 +432,7 @@
 -(void)setKind:(NSNumber*)kind{
     NSError *error = nil;
     if (![self setBasicValue:(CFNumberRef)kind forPropertyID:kABPersonKindProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -444,7 +451,7 @@
 -(void)setPhoneNumbers:(RHMultiStringValue*)phoneNumbers{
     NSError *error = nil;
     if (![self setMultiValue:phoneNumbers forPropertyID:kABPersonPhoneProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -457,7 +464,7 @@
 -(void)setInstantMessageServices:(RHMultiDictionaryValue*)instantMessageServices{
     NSError *error = nil;
     if (![self setMultiValue:instantMessageServices forPropertyID:kABPersonInstantMessageProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -470,7 +477,7 @@
 -(void)setUrls:(RHMultiStringValue*)urls{
     NSError *error = nil;
     if (![self setMultiValue:urls forPropertyID:kABPersonURLProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -483,7 +490,7 @@
 -(void)setRelatedNames:(RHMultiStringValue*)relatedNames{
     NSError *error = nil;
     if (![self setMultiValue:relatedNames forPropertyID:kABPersonRelatedNamesProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -500,7 +507,7 @@
     if (&kABPersonSocialProfileProperty == NULL) return; //availability check
     NSError *error = nil;
     if (![self setMultiValue:socialProfiles forPropertyID:kABPersonSocialProfileProperty error:&error]){
-        RHLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
+        RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
     }
 }
 
@@ -509,13 +516,13 @@
     if (ABPersonCreateVCardRepresentationWithPeople == NULL) return nil; //availability check
     __block CFDataRef vCardDataRef = NULL;
     [self performRecordAction:^(ABRecordRef recordRef) {
-        vCardDataRef = ABPersonCreateVCardRepresentationWithPeople((CFArrayRef)[NSArray arrayWithObject:recordRef]);
+        vCardDataRef = ABPersonCreateVCardRepresentationWithPeople((__bridge CFArrayRef)[NSArray arrayWithObject:(__bridge id)(recordRef)]);
     } waitUntilDone:YES];
     
     if (vCardDataRef){
-        NSData *vCardData = [(NSData*)vCardDataRef copy];
+        NSData *vCardData = [(__bridge NSData*)vCardDataRef copy];
         CFRelease(vCardDataRef);
-        return [vCardData autorelease];
+        return arc_autorelease(vCardData);
     }
     
     return nil;
@@ -524,12 +531,12 @@
 +(NSData*)vCardRepresentationForPeople:(NSArray*)people{
     if (ABPersonCreateVCardRepresentationWithPeople == NULL) return nil; //availability check
     
-    CFDataRef vCardDataRef = ABPersonCreateVCardRepresentationWithPeople((CFArrayRef)people);
+    CFDataRef vCardDataRef = ABPersonCreateVCardRepresentationWithPeople((__bridge CFArrayRef)people);
     
     if (vCardDataRef){
-        NSData *vCardData = [(NSData*)vCardDataRef copy];
+        NSData *vCardData = [(__bridge NSData*)vCardDataRef copy];
         CFRelease(vCardDataRef);
-        return [vCardData autorelease];
+        return arc_autorelease(vCardData);
     }
     
     return nil;

@@ -47,7 +47,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 //private
 @interface RHAddressBook ()
-@property (readonly) NSThread *addressBookThread; // we could possibly make this public... any use?
+@property (readonly, retain) NSThread *addressBookThread; // we could possibly make this public... any use?
 -(NSArray*)sourcesForABRecordRefs:(CFArrayRef)sourceRefs; //bulk performer
 -(NSArray*)groupsForABRecordRefs:(CFArrayRef)groupRefs; //bulk performer
 -(NSArray*)peopleForABRecordRefs:(CFArrayRef)peopleRefs; //bulk performer
@@ -58,7 +58,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 @implementation RHAddressBook {
     
-    RHAddressBookSharedServices *_sharedServices; //single instance
+    __unsafe_unretained RHAddressBookSharedServices *_sharedServices; //weak, single instance
     
     ABAddressBookRef _addressBookRef;
     NSThread *_addressBookThread; //do all work on the same thread. ABAddressBook is not thread safe. :(
@@ -94,24 +94,6 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 @synthesize addressBookThread=_addressBookThread;
 
--(id)retain{
-    return [super retain];
-}
-
-+(BOOL)addressBookAvailable{
-    //in order to test addressbook availability we have to attempt to create an addressbook instance using ABAddressBookCreateWithOptions
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if (ABAddressBookCreateWithOptions != NULL){
-        ABAddressBookRef tmp = ABAddressBookCreateWithOptions(NULL, NULL);
-        if (!tmp) return NO;
-        CFRelease(tmp);
-    }
-#endif //end iOS6+
-
-    //ABAddressBookCreateWithOptions not available or succeeded. return YES;
-    return YES;
-}
-
 
 -(id)init{
     self = [super init];
@@ -119,7 +101,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
         
         //do all our work on a single thread.
         //because NSThread retains its target, we use a placeholder object that contains the threads main method
-        RHAddressBookThreadMain *threadMain = [[[RHAddressBookThreadMain alloc] init] autorelease];
+        RHAddressBookThreadMain *threadMain = arc_autorelease([[RHAddressBookThreadMain alloc] init]);
         _addressBookThread = [[NSThread alloc] initWithTarget:threadMain selector:@selector(threadMain:) object:nil];
         [_addressBookThread setName:[NSString stringWithFormat:@"RHAddressBookInstanceThread for instance %p", self]];
         [_addressBookThread start];
@@ -130,35 +112,40 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
         
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
         if (ABAddressBookCreateWithOptions != NULL){
-            __block CFErrorRef error = NULL;
-            [_addressBookThread performBlock:^{
-                _addressBookRef = ABAddressBookCreateWithOptions(nil, &error);
+            __block CFErrorRef errorRef = NULL;
+            [_addressBookThread rh_performBlock:^{
+                _addressBookRef = ABAddressBookCreateWithOptions(nil, &errorRef);
             }];
             
             if (!_addressBookRef){
                 //bail
-                RHLog(@"Error: Failed to create RHAddressBook instance. Underlying ABAddressBookCreateWithOptions() failed with error: %@", error);
-                [self release];
+                RHErrorLog(@"Error: Failed to create RHAddressBook instance. Underlying ABAddressBookCreateWithOptions() failed with error: %@", errorRef);
+                if (errorRef) CFRelease(errorRef);
+                arc_release_nil(self);
+            
                 return nil;
             }
             
         } else {
 #endif //end iOS6+
             
-            [_addressBookThread performBlock:^{
+            [_addressBookThread rh_performBlock:^{
                 _addressBookRef = ABAddressBookCreate();
             }];
             
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
         }
-#endif //end iOS5+
+#endif //end iOS6+
         
-        [_addressBookThread performBlock:^{
+        [_addressBookThread rh_performBlock:^{
             //weak linking mutable sets
-            _sources = (NSMutableSet *)CFSetCreateMutable(nil, 0, nil);
-            _groups = (NSMutableSet *)CFSetCreateMutable(nil, 0, nil);
-            _people = (NSMutableSet *)CFSetCreateMutable(nil, 0, nil);
+            _sources = (__bridge_transfer NSMutableSet *)CFSetCreateMutable(nil, 0, nil);
+            _groups = (__bridge_transfer NSMutableSet *)CFSetCreateMutable(nil, 0, nil);
+            _people = (__bridge_transfer NSMutableSet *)CFSetCreateMutable(nil, 0, nil);
         }];
+        
+        //subscribe to external change notifications
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(addressBookExternallyChanged:) name:RHAddressBookExternalChangeNotification object:nil];
         
     }
     
@@ -166,26 +153,77 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 }
 
 -(void)dealloc{
+
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+
     _sharedServices = nil; //just throw away our pointer (its a singleton)
 
     [_addressBookThread cancel]; //notify the thread that it is no longer needed
-    [_addressBookThread release]; _addressBookThread = nil;
+    arc_release_nil(_addressBookThread);
     
     if (_addressBookRef) CFRelease(_addressBookRef); _addressBookRef = NULL;
     
-    
-    [_sources release]; _sources = nil;
-    [_groups release]; _groups = nil;
-    [_people release]; _people = nil;
- 
-    [super dealloc];
+    arc_release_nil(_sources);
+    arc_release_nil(_groups);
+    arc_release_nil(_people);
+    arc_super_dealloc();
 }
+
+
+#pragma mark - authorization
+
++(RHAuthorizationStatus)authorizationStatus{
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
+    if (ABAddressBookGetAuthorizationStatus != NULL){
+        ABAuthorizationStatus status = ABAddressBookGetAuthorizationStatus();
+        switch (status) {
+            case kABAuthorizationStatusNotDetermined: return RHAuthorizationStatusNotDetermined;
+            case kABAuthorizationStatusRestricted: return RHAuthorizationStatusRestricted;
+            case kABAuthorizationStatusDenied: return RHAuthorizationStatusDenied;
+            case kABAuthorizationStatusAuthorized: return RHAuthorizationStatusAuthorized;
+        }
+    }
+#endif //end iOS6+
+    
+    //Pre iOS6, always return authorized
+    return RHAuthorizationStatusAuthorized;
+}
+
+-(void)requestAuthorizationWithCompletion:(void (^)(bool granted, NSError* error))completion{
+    completion = (__bridge id)Block_copy((__bridge void *)completion);
+    
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
+    
+    if (ABAddressBookRequestAccessWithCompletion != NULL){
+        
+        [self performAddressBookAction:^(ABAddressBookRef addressBookRef) {
+
+            ABAddressBookRequestAccessWithCompletion(addressBookRef, ^(bool granted, CFErrorRef error) {
+                completion(granted, (__bridge NSError*)error);
+                if (error)CFRelease(error);
+                Block_release((__bridge void *)completion);
+            });
+         
+        } waitUntilDone:YES];
+        
+        return; //if we were able to call ABAddressBookRequestAccessWithCompletion
+    }
+    
+#endif //end iOS6+
+
+    //else, run the completion block async (access is always allowed pre iOS6)
+    dispatch_async(dispatch_get_main_queue(), ^{
+        completion(YES, nil);
+        Block_release((__bridge void *)completion);
+    });
+}
+
 
 #pragma mark - threads
 
 -(void)performAddressBookAction:(void (^)(ABAddressBookRef addressBookRef))actionBlock waitUntilDone:(BOOL)wait{
     CFRetain(_addressBookRef);
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         actionBlock(_addressBookRef);
         CFRelease(_addressBookRef);
     } waitUntilDone:wait];
@@ -196,24 +234,24 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 -(NSArray*)sources{
     __block NSArray *result = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         CFArrayRef sourceRefs = ABAddressBookCopyArrayOfAllSources(_addressBookRef);
         if (sourceRefs){
-            result = [[self sourcesForABRecordRefs:sourceRefs] retain];
+            result = arc_retain([self sourcesForABRecordRefs:sourceRefs]);
             if (sourceRefs) CFRelease(sourceRefs);
         }
     }];
-    return [result autorelease];
+    return arc_autorelease(result);
 }
 
 -(RHSource*)defaultSource{
     __block RHSource* source = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         ABRecordRef sourceRef = ABAddressBookCopyDefaultSource(_addressBookRef);
-        source = [[self sourceForABRecordRef:sourceRef] retain];
+        source = arc_retain([self sourceForABRecordRef:sourceRef]);
         if (sourceRef) CFRelease(sourceRef);
     }];
-    return [source autorelease];
+    return arc_autorelease(source);
 }
 
 -(RHSource*)sourceForABRecordRef:(ABRecordRef)sourceRef{
@@ -227,24 +265,24 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     
     //search for an exact match using recordRef
     __block RHSource *source = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         //look in the cache
         for (RHSource *entry in _sources) {
             //compare using ref
             if (sourceRef == entry.recordRef){
-                source = [entry retain];
+                source = arc_retain(entry);
                 break;
             }
         }
     }];
     
-    if (source) return [source autorelease];
+    if (source) return arc_autorelease(source);
     
 
     
     //get the sourceID
     __block ABRecordID sourceID = kABRecordInvalidID;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         sourceID = ABRecordGetRecordID(sourceRef);
     }];
     
@@ -252,13 +290,13 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
     
     //search for the actual source
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         
         //look in the cache
         for (RHSource *entry in _sources) {
             //compare using ID not ref
             if (sourceID == entry.recordID){
-                source = [entry retain];
+                source = arc_retain(entry);
                 break;
             }
         }
@@ -277,14 +315,14 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
             
     }];
     if (!source) RHLog(@"Source lookup miss");
-    return [source autorelease];
+    return arc_autorelease(source);
 }
 
 -(NSArray*)sourcesForABRecordRefs:(CFArrayRef)sourceRefs{
     CFRetain(sourceRefs);
     NSMutableArray *sources = [NSMutableArray array];
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         
         for (CFIndex i = 0; i < CFArrayGetCount(sourceRefs); i++) {
             ABRecordRef sourceRef = CFArrayGetValueAtIndex(sourceRefs, i);
@@ -300,7 +338,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 -(RHSource*)sourceForABRecordID:(ABRecordID)sourceID{
     __block ABRecordRef recordRef = NULL;
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         recordRef = ABAddressBookGetSourceWithRecordID(_addressBookRef, sourceID);
     }];    
     
@@ -310,26 +348,26 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 -(NSArray*)groups{
     __block NSArray *result = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         CFArrayRef groupRefs = ABAddressBookCopyArrayOfAllGroups(_addressBookRef);
         if (groupRefs){
-            result = [[self groupsForABRecordRefs:groupRefs] retain];
+            result = arc_retain([self groupsForABRecordRefs:groupRefs]);
             CFRelease(groupRefs);
         }
     }];
-    return [result autorelease];
+    return arc_autorelease(result);
 }
 
 -(NSArray*)groupsInSource:(RHSource*)source{
     __block NSArray *result = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         CFArrayRef groupRefs = ABAddressBookCopyArrayOfAllGroupsInSource(_addressBookRef, source.recordRef);
         if (groupRefs){
-            result = [[self groupsForABRecordRefs:groupRefs] retain];
+            result = arc_retain([self groupsForABRecordRefs:groupRefs]);
             CFRelease(groupRefs);
         }
     }];
-    return [result autorelease];
+    return arc_autorelease(result);
 }
 
 -(RHGroup*)groupForABRecordRef:(ABRecordRef)groupRef{
@@ -343,23 +381,23 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     
     //search for an exact match using recordRef
     __block RHGroup *group = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         //look in the cache
         for (RHGroup *entry in _groups) {
             //compare using ref
             if (groupRef == entry.recordRef){
-                group = [entry retain];
+                group = arc_retain(entry);
                 break;
             }
         }
     }];
     
-    if (group) return [group autorelease];
+    if (group) return arc_autorelease(group);
     
     
     //if no direct match found, try using recordID
     __block ABRecordID groupID = kABRecordInvalidID;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         groupID = ABRecordGetRecordID(groupRef);
     }];
     
@@ -368,14 +406,14 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     
     
     //search for the actual group via recordID
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
 
 
         //look in the cache
         for (RHGroup *entry in _groups) {
             //compare using ID not ref
             if (groupID == entry.recordID){
-                group = [entry retain];
+                group = arc_retain(entry);
                 break;
             }
         }
@@ -395,13 +433,13 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
         
     }];
     
-    return [group autorelease];
+    return arc_autorelease(group);
 }
 
 -(NSArray*)groupsForABRecordRefs:(CFArrayRef)groupRefs{
     NSMutableArray *groups = [NSMutableArray array];
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         
         for (CFIndex i = 0; i < CFArrayGetCount(groupRefs); i++) {
             ABRecordRef groupRef = CFArrayGetValueAtIndex(groupRefs, i);
@@ -419,7 +457,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
     __block ABRecordRef recordRef = NULL;
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         recordRef = ABAddressBookGetGroupWithRecordID(_addressBookRef, groupID);
     }];    
     
@@ -429,19 +467,19 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 -(NSArray*)people{
     __block NSArray *result = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         CFArrayRef peopleRefs = ABAddressBookCopyArrayOfAllPeople(_addressBookRef);
         if (peopleRefs){
-            result = [[self peopleForABRecordRefs:peopleRefs] retain];
+            result = arc_retain([self peopleForABRecordRefs:peopleRefs]);
             CFRelease(peopleRefs);
         }
     }];
-    return [result autorelease];
+    return arc_autorelease(result);
 }
 
 -(NSArray*)peopleOrderedBySortOrdering:(ABPersonSortOrdering)ordering{
     __block NSArray *result = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         
         CFArrayRef peopleRefs = ABAddressBookCopyArrayOfAllPeople(_addressBookRef);
         if (peopleRefs){
@@ -451,7 +489,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
                 //sort 
                 CFArraySortValues(mutablePeopleRefs, CFRangeMake(0, CFArrayGetCount(mutablePeopleRefs)), (CFComparatorFunction) ABPersonComparePeopleByName, (void*) ordering);
-                result = [[self peopleForABRecordRefs:mutablePeopleRefs] retain];
+                result = arc_retain([self peopleForABRecordRefs:mutablePeopleRefs]);
                 CFRelease(mutablePeopleRefs);
                 
             }
@@ -461,7 +499,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
         }
     }];
     
-    return [result autorelease];
+    return arc_autorelease(result);
 }
 
 -(NSArray*)peopleOrderedByUsersPreference{
@@ -476,14 +514,14 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 -(NSArray*)peopleWithName:(NSString*)name{
     __block NSArray *result = nil;
-    [_addressBookThread performBlock:^{
-        CFArrayRef peopleRefs = ABAddressBookCopyPeopleWithName(_addressBookRef, (CFStringRef)name);
+    [_addressBookThread rh_performBlock:^{
+        CFArrayRef peopleRefs = ABAddressBookCopyPeopleWithName(_addressBookRef, (__bridge CFStringRef)name);
         if (peopleRefs) {
-            result = [[self peopleForABRecordRefs:peopleRefs] retain];
+            result = arc_retain([self peopleForABRecordRefs:peopleRefs]);
             CFRelease(peopleRefs);
         }
     }];
-    return [result autorelease];
+    return arc_autorelease(result);
 }
 
 -(RHPerson*)personForABRecordRef:(ABRecordRef)personRef{
@@ -496,23 +534,23 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     
     //search for an exact match using recordRef
     __block RHPerson *person = nil;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         //look in the cache
         for (RHPerson *entry in _people) {
             //compare ref directly
             if (personRef == entry.recordRef){
-                person = [entry retain];
+                person = arc_retain(entry);
                 break;
             }
         }
     }];
     
-    if (person) return [person autorelease];
+    if (person) return arc_autorelease(person);
     
     
     //if exact matching failed, look using recordID;
     __block ABRecordID personID = kABRecordInvalidID;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         personID = ABRecordGetRecordID(personRef);
     }];
     
@@ -522,13 +560,13 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     
     //search for the actual person using recordID
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         
         //look in the cache
         for (RHPerson *entry in _people) {
             //compare using ID not ref
             if (personID == entry.recordID){
-                person = [entry retain];
+                person = arc_retain(entry);
                 break;
             }
         }
@@ -548,14 +586,14 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
         
     }];
     
-    return [person autorelease];
+    return arc_autorelease(person);
 
 }
 
 -(NSArray*)peopleForABRecordRefs:(CFArrayRef)peopleRefs{
     NSMutableArray *people = [NSMutableArray array];
 
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
 
         for (CFIndex i = 0; i < CFArrayGetCount(peopleRefs); i++) {
             ABRecordRef personRef = CFArrayGetValueAtIndex(peopleRefs, i);
@@ -571,7 +609,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
     __block ABRecordRef recordRef = NULL;
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         recordRef = ABAddressBookGetPersonWithRecordID(_addressBookRef, personID);
     }];    
     
@@ -599,12 +637,13 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     __block BOOL result = NO;
     //first check to make sure person has not already been added to another addressbook, if so bail;
     if (person.addressBook != nil && person.addressBook != self) [NSException raise:NSInvalidArgumentException format:@"Person has already been added to another addressbook."];
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         
         CFErrorRef errorRef = NULL;
         result = ABAddressBookAddRecord(_addressBookRef, person.recordRef, &errorRef);
         if (!result){
-            RHLog(@"Error: Failed to add RHPerson to AddressBook: error: %@", (NSError*)errorRef);
+            RHErrorLog(@"Error: Failed to add RHPerson to AddressBook: error: %@", errorRef);
+            if (errorRef) CFRelease(errorRef);
         } else {
             if (![_people containsObject:person])[_people addObject:person];
         }
@@ -634,12 +673,13 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     __block BOOL result = NO;
     //first check to make sure group has not already been added to another addressbook, if so bail;
     if (group.addressBook != nil && group.addressBook != self) [NSException raise:NSInvalidArgumentException format:@"Group has already been added to another addressbook."];
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         
         CFErrorRef errorRef = NULL;
         result = ABAddressBookAddRecord(_addressBookRef, group.recordRef, &errorRef);
         if (!result){
-            RHLog(@"Error: Failed to add RHGroup to AddressBook: error: %@", (NSError*)errorRef);
+            RHErrorLog(@"Error: Failed to add RHGroup to AddressBook: error: %@", errorRef);
+            if (errorRef) CFRelease(errorRef);
         } else {
             if (![_groups containsObject:group])[_groups addObject:group];
         }
@@ -659,16 +699,16 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
     NSMutableArray *newPeople = [NSMutableArray array];
 
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
 
-        CFArrayRef peopleRefs = ABPersonCreatePeopleInSourceWithVCardRepresentation(source.recordRef, (CFDataRef)representation);
+        CFArrayRef peopleRefs = ABPersonCreatePeopleInSourceWithVCardRepresentation(source.recordRef, (__bridge CFDataRef)representation);
         for (CFIndex i = 0; i < CFArrayGetCount(peopleRefs); i++) {
             ABRecordRef personRef = CFArrayGetValueAtIndex(peopleRefs, i);
             if (personRef){
                 BOOL success = ABAddressBookAddRecord(_addressBookRef, personRef, NULL);
 
                 if (success){
-                    RHPerson *person = [[[RHPerson alloc] initWithAddressBook:self recordRef:personRef] autorelease];
+                    RHPerson *person = arc_autorelease([[RHPerson alloc] initWithAddressBook:self recordRef:personRef]);
                     if (person)[newPeople addObject:person];
                 }
             }
@@ -687,9 +727,9 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
         CFArrayAppendValue(refs, person.recordRef);
     }
     
-    NSData *result = (NSData*)ABPersonCreateVCardRepresentationWithPeople(refs);
+    NSData *result = (__bridge_transfer NSData*)ABPersonCreateVCardRepresentationWithPeople(refs);
     CFRelease(refs);
-    return [result autorelease];
+    return arc_autorelease(result);
 }
 
 #endif //end iOS5+
@@ -707,12 +747,15 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     __block BOOL result = YES;
     __block CFErrorRef cfError = NULL;
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         result = ABAddressBookRemoveRecord(_addressBookRef, person.recordRef, &cfError);
         //if (result)[_people removeObject:person]; //we shouldn't actually remove this object from the cache on removal.. all accesses go via AB record methods so removing now just means the same object is not returned by the cache if the user reverts the removal.
     }];
-
-    if (error) *error = (NSError*)cfError;
+    
+    if (!result){
+        if (error) *error = (NSError*)ARCBridgingRelease(CFRetain(cfError));
+        if (cfError) CFRelease(cfError);
+    }
     return result;
 }
 
@@ -727,14 +770,16 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     __block BOOL result = YES;
     __block CFErrorRef cfError = NULL;
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         result = ABAddressBookRemoveRecord(_addressBookRef, group.recordRef, &cfError);
         //if (result)[_groups removeObject:group]; //we shouldn't actually remove this object from the cache on removal.. all accesses go via AB record methods so removing now just means the same object is not returned by the cache if the user reverts the removal.
 
     }];
 
-    if (error) *error = (NSError*)cfError;
-    
+    if (!result){
+        if (error) *error = (NSError*)ARCBridgingRelease(CFRetain(cfError));
+        if (cfError) CFRelease(cfError);
+    }
     return result;
 }
 
@@ -744,7 +789,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     NSError *error = nil;
     BOOL result = [self save:&error];
     if (!result) {
-        RHLog(@"RHAddressBook: Error saving: %@", error);
+        RHErrorLog(@"RHAddressBook: Error saving: %@", error);
     }
     return result;
 }
@@ -753,18 +798,22 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     __block BOOL result = YES;
     __block CFErrorRef cfError = NULL;
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         if ([self hasUnsavedChanges]) {
             result = ABAddressBookSave(_addressBookRef, &cfError);
         }
     }];
-    if (error) *error = (NSError*)cfError;
+    if (!result){
+        if (error) *error = (NSError*)ARCBridgingRelease(CFRetain(cfError));
+        if (cfError) CFRelease(cfError);
+    }
+
     return result;
 }
 
 -(BOOL)hasUnsavedChanges{
     __block BOOL result;
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
     result = ABAddressBookHasUnsavedChanges(_addressBookRef);
     }];
     
@@ -772,7 +821,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 }
 
 -(void)revert{
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         ABAddressBookRevert(_addressBookRef);
     }];
 }
@@ -843,7 +892,7 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     NSArray *results = [_sharedServices geoResultsWithinDistance:distance ofLocation:location];
     NSMutableArray *array = [NSMutableArray array];
     if (results){
-        [_addressBookThread performBlock:^{
+        [_addressBookThread rh_performBlock:^{
             for (RHAddressBookGeoResult *result in results) {
                 RHPerson *person = [self personForABRecordRef:ABAddressBookGetPersonWithRecordID(_addressBookRef, result.personID)];
                 if (person) [array addObject:person];
@@ -857,11 +906,11 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     RHAddressBookGeoResult *result = [_sharedServices geoResultClosestToLocation:location];
     __block RHPerson *person = nil;
     if (result){
-        [_addressBookThread performBlock:^{
-            person = [[self personForABRecordRef:ABAddressBookGetPersonWithRecordID(_addressBookRef, result.personID)] retain];
+        [_addressBookThread rh_performBlock:^{
+            person = arc_retain([self personForABRecordRef:ABAddressBookGetPersonWithRecordID(_addressBookRef, result.personID)]);
         }];
     }
-    return [person autorelease];
+    return arc_autorelease(person);
     
 }
 
@@ -869,11 +918,11 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     RHAddressBookGeoResult *result = [_sharedServices geoResultClosestToLocation:location distanceOut:distanceOut];
     __block RHPerson *person = nil;
     if (result){
-        [_addressBookThread performBlock:^{
-            person = [[self personForABRecordRef:ABAddressBookGetPersonWithRecordID(_addressBookRef, result.personID)] retain];
+        [_addressBookThread rh_performBlock:^{
+            person = arc_retain([self personForABRecordRef:ABAddressBookGetPersonWithRecordID(_addressBookRef, result.personID)]);
         }];
     }
-    return [person autorelease];
+    return arc_autorelease(person);
 }
 
 #endif //end iOS5+
@@ -885,9 +934,9 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 -(void)_recordCheckIn:(RHRecord*)record{
     if (!record) return;
 
-    [record retain]; //keep it around for a while
+    record = arc_retain(record); //keep it around for a while
 
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
 
         //if source, add to _sources
         if ([record isKindOfClass:[RHSource class]]){
@@ -905,16 +954,16 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
         }    
     }];
     
-    [record release];
+    arc_release(record);
 }
 
 -(void)_recordCheckOut:(RHRecord*)record{
     //called from inside records dealloc method, so not safe to use any instance variables implemented below RHRecord.
     if (!record) return;
     
-    __block RHRecord *_safeRecord = record;
+    __unsafe_unretained __block RHRecord *_safeRecord = record;
     
-    [_addressBookThread performBlock:^{
+    [_addressBookThread rh_performBlock:^{
         
         //if source, remove from _sources
         if ([_safeRecord isKindOfClass:[RHSource class]]){
@@ -933,4 +982,5 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
     }];
     
 }
+
 @end
