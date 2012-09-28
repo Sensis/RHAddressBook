@@ -29,6 +29,7 @@
 //
 
 #import "RHRecord.h"
+#import "RHARCSupport.h"
 
 @class RHPerson;
 @class RHSource;

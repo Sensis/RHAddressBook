@@ -29,6 +29,8 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "RHARCSupport.h"
+
 
 @interface RHAddressBookThreadMain : NSObject
 

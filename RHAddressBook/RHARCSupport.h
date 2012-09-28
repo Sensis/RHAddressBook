@@ -28,7 +28,6 @@
 //
 // supporting macros for code to allow building with and without arc
 
-
 #ifndef __has_feature
     // not LLVM Compiler
     #define __has_feature(x) 0

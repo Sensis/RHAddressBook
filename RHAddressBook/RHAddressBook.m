@@ -120,7 +120,6 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
             if (!_addressBookRef){
                 //bail
                 RHErrorLog(@"Error: Failed to create RHAddressBook instance. Underlying ABAddressBookCreateWithOptions() failed with error: %@", errorRef);
-                if (errorRef) CFRelease(errorRef);
                 arc_release_nil(self);
             
                 return nil;

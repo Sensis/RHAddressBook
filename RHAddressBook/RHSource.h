@@ -31,6 +31,8 @@
 #import "RHRecord.h"
 #import <Foundation/Foundation.h>
 #import <AddressBook/AddressBook.h>
+#import "RHARCSupport.h"
+#import "RHARCSupport.h"
 @class RHAddressBook;
 @class RHPerson;
 @class RHGroup;

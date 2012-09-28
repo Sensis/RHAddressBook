@@ -123,14 +123,11 @@ static __strong RHAddressBookSharedServices *_sharedInstance = nil;
             if (!_addressBook){
                 //bail
                 RHErrorLog(@"Error: Failed to create RHAddressBookSharedServices instance. Underlying ABAddressBookCreateWithOptions() failed with error: %@", errorRef);
-                if (errorRef) CFRelease(errorRef);
 
                 [_addressBookThread cancel];
                 arc_release_nil(_addressBookThread);
                 
-                arc_release_nil(self);
-                
-                return nil;
+                return self;
             }
             
         } else {
