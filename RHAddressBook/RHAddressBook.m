@@ -94,8 +94,6 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 @synthesize addressBookThread=_addressBookThread;
 
-<<<<<<< Updated upstream
-=======
 -(id)retain{
     return [super retain];
 }
@@ -130,8 +128,6 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
     return accessGranted;
 }
-
->>>>>>> Stashed changes
 
 -(id)init{
     self = [super init];
