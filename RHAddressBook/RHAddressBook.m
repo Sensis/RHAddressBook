@@ -94,6 +94,44 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 @synthesize addressBookThread=_addressBookThread;
 
+<<<<<<< Updated upstream
+=======
+-(id)retain{
+    return [super retain];
+}
+
++(BOOL)addressBookAvailable
+{
+	__block BOOL accessGranted = YES;
+	
+    //in order to test addressbook availability we have to attempt to create an addressbook instance using ABAddressBookCreateWithOptions
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
+	ABAddressBookRef addressBook = ABAddressBookCreate();
+
+	if (ABAddressBookRequestAccessWithCompletion != NULL)	// we're on iOS6
+	{
+		dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+
+		ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error)
+		{
+			accessGranted = granted;
+			dispatch_semaphore_signal(sema);
+		});
+
+		dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+		dispatch_release(sema);    
+	}
+	else
+	{
+		// we're on iOS5 or older
+		accessGranted = YES;
+	}
+#endif
+
+    return accessGranted;
+}
+
+>>>>>>> Stashed changes
 
 -(id)init{
     self = [super init];
