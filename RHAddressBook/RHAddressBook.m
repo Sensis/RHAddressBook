@@ -94,10 +94,6 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 
 @synthesize addressBookThread=_addressBookThread;
 
--(id)retain{
-    return [super retain];
-}
-
 +(BOOL)addressBookAvailable
 {
 	__block BOOL accessGranted = YES;
