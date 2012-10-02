@@ -100,25 +100,54 @@ NSString * const RHAddressBookPersonAddressGeocodeCompleted = @"RHAddressBookPer
 	
     //in order to test addressbook availability we have to attempt to create an addressbook instance using ABAddressBookCreateWithOptions
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-	ABAddressBookRef addressBook = ABAddressBookCreate();
-
-	if (ABAddressBookRequestAccessWithCompletion != NULL)	// we're on iOS6
+    if (ABAddressBookCreateWithOptions != NULL)
 	{
-		dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+        ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
+        if (!addressBook) return NO;
 
-		ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error)
+		if (ABAddressBookRequestAccessWithCompletion != NULL)	// we're on iOS6
 		{
-			accessGranted = granted;
-			dispatch_semaphore_signal(sema);
-		});
+			dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-		dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
-		dispatch_release(sema);    
+			ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error)
+			{
+				accessGranted = granted;
+				dispatch_semaphore_signal(sema);
+			});
+
+			dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+			dispatch_release(sema);    
+		}
+		else
+		{
+			// we're on iOS5 or older
+			accessGranted = YES;
+		}
+		
+		CFRelease(addressBook);
+	}
+#else
+	// we're on iOS5 or older
+	ABAddressBookRef addressBook = ABAddressBookCreate();
+	if (addressBook == nil)
+	{
+		accessGranted = NO;
 	}
 	else
 	{
-		// we're on iOS5 or older
-		accessGranted = YES;
+		// checke that we have permission to access the AddressBook
+		CFErrorRef *error = nil;
+        ABRecordRef sourceRef = ABAddressBookCopyDefaultSource(addressBook);
+		BOOL status = ABAddressBookAddRecord(addressBook, sourceRef, error);
+		if (status)
+		{
+			ABAddressBookRemoveRecord(addressBook, sourceRef, error);
+			accessGranted = YES ;
+		}
+		else
+		{
+			accessGranted = NO;
+		}
 	}
 #endif
 
