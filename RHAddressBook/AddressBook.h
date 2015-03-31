@@ -34,3 +34,4 @@
 #import "RHGroup.h"
 #import "RHPerson.h"
 #import "RHMultiValue.h"
+#import "RHARCSupport.h"

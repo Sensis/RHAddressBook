@@ -150,6 +150,65 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
     
 }
 
++(BOOL)addressBookAvailable
+{
+	__block BOOL accessGranted = YES;
+	
+    //in order to test addressbook availability we have to attempt to create an addressbook instance using ABAddressBookCreateWithOptions
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
+    if (ABAddressBookCreateWithOptions != NULL)
+	{
+        ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
+        if (!addressBook) return NO;
+
+		if (ABAddressBookRequestAccessWithCompletion != NULL)	// we're on iOS6
+		{
+			dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+
+			ABAddressBookRequestAccessWithCompletion(addressBook, ^(bool granted, CFErrorRef error)
+			{
+				accessGranted = granted;
+				dispatch_semaphore_signal(sema);
+			});
+
+			dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+			dispatch_release(sema);    
+		}
+		else
+		{
+			// we're on iOS5 or older
+			accessGranted = YES;
+		}
+		
+		CFRelease(addressBook);
+	}
+#else
+	// we're on iOS5 or older
+	ABAddressBookRef addressBook = ABAddressBookCreate();
+	if (addressBook == nil)
+	{
+		accessGranted = NO;
+	}
+	else
+	{
+		// checke that we have permission to access the AddressBook
+		CFErrorRef *error = nil;
+        ABRecordRef sourceRef = ABAddressBookCopyDefaultSource(addressBook);
+		BOOL status = ABAddressBookAddRecord(addressBook, sourceRef, error);
+		if (status)
+		{
+			ABAddressBookRemoveRecord(addressBook, sourceRef, error);
+			accessGranted = YES ;
+		}
+		else
+		{
+			accessGranted = NO;
+		}
+	}
+#endif
+
+    return accessGranted;
+}
 
 -(instancetype)init{
     self = [super init];
@@ -179,7 +238,6 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
             if (!_addressBookRef){
                 //bail
                 RHErrorLog(@"Error: Failed to create RHAddressBook instance. Underlying ABAddressBookCreateWithOptions() failed with error: %@", errorRef);
-                if (errorRef) CFRelease(errorRef);
                 arc_release_nil(self);
             
                 return nil;

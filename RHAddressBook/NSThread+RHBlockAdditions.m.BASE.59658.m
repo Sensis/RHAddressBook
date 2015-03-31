@@ -1,5 +1,5 @@
 //
-//  NSThread+RHBlockAdditions.h
+//  NSThread+RHBlockAdditions.m
 //  RHAddressBook
 //
 //  Created by Richard Heard on 22/8/11.
@@ -28,25 +28,48 @@
 //  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-// Provides methods for running blocks on specific threads, useful when specific 
-// tasks need to be performed on a single thread for thread safety etc.
+#import "NSThread+RHBlockAdditions.h"
 
-#import <Foundation/Foundation.h>
-#import "RHARCSupport.h"
+@implementation NSThread (RHBlockAdditions)
 
-typedef void (^VoidBlock)(void);
+#pragma mark - public
+-(void)rh_performBlock:(VoidBlock)block{
+    [self rh_performBlock:block waitUntilDone:YES];
+}
 
-@interface NSThread (RHBlockAdditions)
+-(void)rh_performBlock:(VoidBlock)block waitUntilDone:(BOOL)wait{
+    //if current thread and wait (run directly)
+    if ([[NSThread currentThread] isEqual:self] && wait){
+        block(); return;
+    }
+	[self performSelector:@selector(_rh_runBlock:) onThread:self withObject:arc_autorelease([block copy]) waitUntilDone:wait];
+}
 
--(void)rh_performBlock:(VoidBlock)block;
--(void)rh_performBlock:(VoidBlock)block waitUntilDone:(BOOL)wait;
--(void)rh_performBlock:(VoidBlock)block afterDelay:(NSTimeInterval)delay;
+-(void)rh_performBlock:(VoidBlock)block afterDelay:(NSTimeInterval)delay{
+    [self performSelector:@selector(rh_performBlock:) withObject:arc_autorelease([block copy]) afterDelay:delay];
+}
 
-+(void)rh_performBlockOnMainThread:(VoidBlock)block;
-+(void)rh_performBlockOnMainThread:(VoidBlock)block waitUntilDone:(BOOL)wait;
-+(void)rh_performBlockInBackground:(VoidBlock)block;
 
-//private
--(void)_rh_runBlock:(void (^)())block;
+#pragma mark - helpers
++(void)rh_performBlockOnMainThread:(VoidBlock)block{
+    [[NSThread mainThread] rh_performBlock:block];
+}
+
++(void)rh_performBlockOnMainThread:(VoidBlock)block waitUntilDone:(BOOL)wait{
+    [[NSThread mainThread] rh_performBlock:block waitUntilDone:wait];
+}
+
++(void)rh_performBlockInBackground:(VoidBlock)block{
+    [NSThread performSelectorInBackground:@selector(_rh_runBlock:) withObject:arc_autorelease([block copy])];
+}
+
+-(void)_rh_runBlock:(void (^)())block{
+    if (block) block();
+}
 
 @end
+
+
+//include an implementation in this file so we don't have to use -load_all for this category to be included in a static lib
+@interface RHFixCategoryBugClassRHBA @end @implementation RHFixCategoryBugClassRHBA @end
+

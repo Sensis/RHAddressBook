@@ -36,6 +36,7 @@
 #import <Foundation/Foundation.h>
 #import <AddressBook/AddressBook.h>
 #import <CoreLocation/CoreLocation.h>
+#import "RHARCSupport.h"
 
 @class CLPlacemark;
 @class CLGeocoder;

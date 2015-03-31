@@ -33,6 +33,7 @@
 #import <UIKit/UIKit.h>
 #import "RHMultiValue.h"
 #import "RHPersonLabels.h"
+#import "RHARCSupport.h"
 
 @class RHPerson;
 @class RHSource;

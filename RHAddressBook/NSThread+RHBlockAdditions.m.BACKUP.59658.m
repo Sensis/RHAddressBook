@@ -71,5 +71,9 @@
 
 
 //include an implementation in this file so we don't have to use -load_all for this category to be included in a static lib
+<<<<<<< HEAD
+@interface RHFixCategoryBugClassRHBA : NSObject  @end @implementation RHFixCategoryBugClassRHBA @end
+=======
 @interface RHFixCategoryBugClassRHBA : NSObject @end @implementation RHFixCategoryBugClassRHBA @end
+>>>>>>> 4638030015699099001b7c04cc12d14d75143c10
 
