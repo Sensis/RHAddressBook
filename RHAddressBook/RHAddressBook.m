@@ -188,12 +188,9 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
         } else {
 #endif //end iOS6+
             
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            rh_dispatch_sync_for_addressbook(self, ^{
-                _addressBookRef = ABAddressBookCreate();
-            });
-#pragma clang diagnostic pop
+            [_addressBookThread rh_performBlock:^{
+                _addressBookRef = ABAddressBookCreateWithOptions(NULL, NULL);
+            }];
             
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
         }
@@ -621,7 +618,7 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
             if (mutablePeopleRefs){
 
                 //sort 
-                CFArraySortValues(mutablePeopleRefs, CFRangeMake(0, CFArrayGetCount(mutablePeopleRefs)), (CFComparatorFunction) ABPersonComparePeopleByName, (void*) (long) ordering);
+                CFArraySortValues(mutablePeopleRefs, CFRangeMake(0, CFArrayGetCount(mutablePeopleRefs)), (CFComparatorFunction) ABPersonComparePeopleByName, (ABPersonSortOrdering) ordering);
                 result = arc_retain([self peopleForABRecordRefs:mutablePeopleRefs]);
                 CFRelease(mutablePeopleRefs);
                 
@@ -1100,21 +1097,7 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
 }
 
 +(ABPersonCompositeNameFormat)compositeNameFormat{
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
-    if (ABPersonGetCompositeNameFormatForRecord != NULL){
-        return ABPersonGetCompositeNameFormatForRecord(NULL);
-    } else {
-#endif //end iOS7+
-        
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        return ABPersonGetCompositeNameFormat();
-#pragma clang diagnostic pop
-        
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
-    }
-#endif //end iOS7+
-    
+    return ABPersonGetCompositeNameFormatForRecord(NULL);
 }
 
 +(BOOL)compositeNameFormatFirstNameFirst{

@@ -141,7 +141,7 @@ static __strong RHAddressBookSharedServices *_sharedInstance = nil;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
             [_addressBookThread rh_performBlock:^{
-                _addressBook = ABAddressBookCreate();
+                _addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
             }];
 #pragma clang diagnostic pop
             

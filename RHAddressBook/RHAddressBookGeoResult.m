@@ -118,33 +118,8 @@
     NSDictionary *result = nil;
     ABAddressBookRef addressBookRef = NULL;
     
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    if (ABAddressBookCreateWithOptions != NULL){
-        
-        CFErrorRef errorRef = NULL;
-        addressBookRef = ABAddressBookCreateWithOptions(nil, &errorRef);
-        
-        if (!addressBookRef){
-            //bail
-            RHErrorLog(@"Error: Failed to get -[RHAddressBookGeoResult associatedAddressDictionary]. Underlying ABAddressBookCreateWithOptions() failed with error: %@", errorRef);
-            if (errorRef) CFRelease(errorRef);
-            
-            return nil;
-        }
-
-    } else {
-#endif //end iOS6+
-        
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        addressBookRef = ABAddressBookCreate();
-#pragma clang diagnostic pop
-        
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-    }
-#endif //end iOS6+
-    
-    ABRecordRef person = ABAddressBookGetPersonWithRecordID(addressBookRef, self.personID);
+    ABAddressBookRef addressBook = ABAddressBookCreateWithOptions(NULL, NULL);
+    ABRecordRef person = ABAddressBookGetPersonWithRecordID(addressBook, self.personID);  
     if (person){
         ABMultiValueRef addresses = ABRecordCopyValue(person, kABPersonAddressProperty);
         if (ABMultiValueGetCount(addresses) > 0){
@@ -252,7 +227,7 @@
     //md5 hash the string    
     const char *str = [string UTF8String];
     unsigned char outBuffer[CC_MD5_DIGEST_LENGTH];
-    CC_MD5(str, strlen(str), outBuffer);
+    CC_MD5(str, (CC_LONG)strlen(str), outBuffer);
     
     NSMutableString *hash = [NSMutableString string];
     for(int i = 0; i<CC_MD5_DIGEST_LENGTH; i++) {
