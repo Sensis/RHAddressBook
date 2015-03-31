@@ -49,7 +49,6 @@
 		13C2B76014F5919300B7D658 /* AddressBookUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13C2B75F14F5919300B7D658 /* AddressBookUI.framework */; };
 		13C2B76214FE1E6600B7D658 /* AddressBookUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13C2B75F14F5919300B7D658 /* AddressBookUI.framework */; };
 		13C6859A146F4E0E004D4458 /* RHAddressBookGeoResult.h in Headers */ = {isa = PBXBuildFile; fileRef = 13C68598146F4E0E004D4458 /* RHAddressBookGeoResult.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		13C6859B146F4E0E004D4458 /* RHAddressBookGeoResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C68599146F4E0E004D4458 /* RHAddressBookGeoResult.m */; };
 		13C9D504146C5A8600327D15 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13C9D503146C5A8600327D15 /* Foundation.framework */; };
 		13C9D50A146C5A8600327D15 /* RHAddressBook.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C9D509146C5A8600327D15 /* RHAddressBook.m */; };
 		13C9D512146C5D1800327D15 /* RHAddressBookSharedServices.h in Headers */ = {isa = PBXBuildFile; fileRef = 13C9D510146C5D1800327D15 /* RHAddressBookSharedServices.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -73,7 +72,6 @@
 		13D151CD193E77BE003B0F45 /* RHPerson.m in Sources */ = {isa = PBXBuildFile; fileRef = 133DF0D1147104AA005330C7 /* RHPerson.m */; };
 		13D151CE193E77BE003B0F45 /* RHMultiValue.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C9D526146CA10D00327D15 /* RHMultiValue.m */; };
 		13D151CF193E77BE003B0F45 /* RHAddressBookSharedServices.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C9D511146C5D1800327D15 /* RHAddressBookSharedServices.m */; };
-		13D151D0193E77BE003B0F45 /* RHAddressBookGeoResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C68599146F4E0E004D4458 /* RHAddressBookGeoResult.m */; };
 		13D151D1193E77FD003B0F45 /* AddressBook.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13C9D514146C5F4600327D15 /* AddressBook.framework */; };
 		13D151D2193E780B003B0F45 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13C9D516146C5F5200327D15 /* CoreLocation.framework */; };
 		13D151D3193E7812003B0F45 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 13C9D503146C5A8600327D15 /* Foundation.framework */; };
@@ -121,7 +119,7 @@
 		132DF84814F32AB000513B38 /* RHAddressBook_Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RHAddressBook_Private.h; sourceTree = "<group>"; };
 		132DF84B14F34E3100513B38 /* RHRecord_Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RHRecord_Private.h; sourceTree = "<group>"; };
 		132FD68615A2D5EE001E0D15 /* RHARCSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RHARCSupport.h; sourceTree = "<group>"; };
-		133DF0931470EE36005330C7 /* RHAddressBookLogicTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RHAddressBookLogicTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		133DF0931470EE36005330C7 /* RHAddressBookLogicTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = RHAddressBookLogicTests.xctest; path = RHAddressBookLogicTests.octest; sourceTree = BUILT_PRODUCTS_DIR; };
 		133DF0991470EE36005330C7 /* RHAddressBookLogicTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "RHAddressBookLogicTests-Info.plist"; sourceTree = "<group>"; };
 		133DF09B1470EE36005330C7 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		133DF09D1470EE36005330C7 /* RHAddressBookLogicTests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RHAddressBookLogicTests.h; sourceTree = "<group>"; };
@@ -441,7 +439,7 @@
 			);
 			name = RHAddressBookLogicTests;
 			productName = RHAddressBookLogicTests;
-			productReference = 133DF0931470EE36005330C7 /* RHAddressBookLogicTests.octest */;
+			productReference = 133DF0931470EE36005330C7 /* RHAddressBookLogicTests.xctest */;
 			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 		133DF0A71470F273005330C7 /* RHAddressBookTester */ = {
@@ -614,7 +612,6 @@
 				13C9D520146C74CE00327D15 /* NSThread+RHBlockAdditions.m in Sources */,
 				13C9D524146C931400327D15 /* RHRecord.m in Sources */,
 				13C9D528146CA10D00327D15 /* RHMultiValue.m in Sources */,
-				13C6859B146F4E0E004D4458 /* RHAddressBookGeoResult.m in Sources */,
 				133DF0CF1471047A005330C7 /* RHGroup.m in Sources */,
 				133DF0D3147104AA005330C7 /* RHPerson.m in Sources */,
 				130E2B7614EDE6830024BB17 /* RHAddressBookThreadMain.m in Sources */,
@@ -634,7 +631,6 @@
 				13D151CD193E77BE003B0F45 /* RHPerson.m in Sources */,
 				13D151CE193E77BE003B0F45 /* RHMultiValue.m in Sources */,
 				13D151CF193E77BE003B0F45 /* RHAddressBookSharedServices.m in Sources */,
-				13D151D0193E77BE003B0F45 /* RHAddressBookGeoResult.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -31,6 +31,7 @@
 #import "RHAddressBookGeoResult.h"
 
 #if RH_AB_INCLUDE_GEOCODING
+#endif
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 50000
 
 #import <CommonCrypto/CommonDigest.h>   //for hashing functions
@@ -38,7 +39,7 @@
 #import "RHAddressBook.h"               // for logging
 #import "RHAddressBookSharedServices.h" // for isGeocodingSupported
 
-@interface RHAddressBookGeoResult ()
+@interface RHAddressBookGeoResult()
 @property (readwrite, retain) CLPlacemark *placemark;
 @property (readwrite, assign) BOOL resultNotFound;
 @end

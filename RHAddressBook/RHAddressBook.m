@@ -246,7 +246,14 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
         } else {
 #endif //end iOS6+
             
-            [_addressBookThread rh_performBlock:^{
+            //because NSThread retains its target, we use a placeholder object that contains the threads main method
+            RHAddressBookThreadMain *threadMain = arc_autorelease([[RHAddressBookThreadMain alloc] init]);
+            NSThread *addressBookThread = [[NSThread alloc] initWithTarget:threadMain selector:@selector(threadMain:) object:nil];
+            [addressBookThread setName:[NSString stringWithFormat:@"RHAddressBookSharedServicesThread for %p", self]];
+            [addressBookThread start];
+            
+            
+            [addressBookThread rh_performBlock:^{
                 _addressBookRef = ABAddressBookCreateWithOptions(NULL, NULL);
             }];
             
