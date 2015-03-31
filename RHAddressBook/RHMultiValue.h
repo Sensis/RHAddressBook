@@ -30,7 +30,7 @@
 
 #import <Foundation/Foundation.h>
 #import <AddressBook/AddressBook.h>
-#import "RHAddressBook.h"
+#import "RHARCSupport.h"
 
 @class RHMultiValue;
 @class RHMutableMultiValue;

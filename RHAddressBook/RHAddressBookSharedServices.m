@@ -128,11 +128,11 @@ static __strong RHAddressBookSharedServices *_sharedInstance = nil;
             if (!_addressBook){
                 //bail
                 RHErrorLog(@"Error: Failed to create RHAddressBookSharedServices instance. Underlying ABAddressBookCreateWithOptions() failed with error: %@", errorRef);
-                if (errorRef) CFRelease(errorRef);
+
+                [_addressBookThread cancel];
+                arc_release_nil(_addressBookThread);
                 
-                arc_release_nil(self);
-                
-                return nil;
+                return self;
             }
             
         } else {
@@ -152,7 +152,7 @@ static __strong RHAddressBookSharedServices *_sharedInstance = nil;
         
 #if RH_AB_INCLUDE_GEOCODING
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 50000
-        if ([RHAddressBookSharedServices isGeocodingSupported]){
+        if ([RHAddressBookSharedServices isGeocodingSupported] && _addressBook){
             [self loadCache];
             [self rebuildCache];
         }
@@ -216,8 +216,11 @@ static __strong RHAddressBookSharedServices *_sharedInstance = nil;
 //creates a new cache array, pulling over all existing values from the old cache array that are useable
 -(void)rebuildCache{
     if (![[NSThread currentThread] isEqual:_addressBookThread]){
-        [self performSelector:_cmd onThread:_addressBookThread withObject:nil waitUntilDone:YES];
-        return;
+		if (_addressBook)
+		{
+			[self performSelector:_cmd onThread:_addressBookThread withObject:nil waitUntilDone:YES];
+		}
+		return;
     }
     RHLog(@"");
     

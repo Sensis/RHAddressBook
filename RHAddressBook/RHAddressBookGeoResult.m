@@ -241,4 +241,3 @@
 @end
 
 #endif //end iOS5+
-#endif //end Geocoding

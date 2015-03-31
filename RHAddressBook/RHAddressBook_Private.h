@@ -29,6 +29,7 @@
 //
 
 #import "RHAddressBook.h"
+#import "RHARCSupport.h"
 
 @class RHRecord;
 @interface RHAddressBook ()
