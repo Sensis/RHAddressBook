@@ -59,10 +59,6 @@
     return _placemark.location;
 }
 
--(instancetype)init {
-    [NSException raise:NSInvalidArgumentException format:@"Unable to create a GeoResult without a personID and addressID."];
-    return nil;
-}
 
 -(instancetype)initWithPersonID:(ABRecordID)personID addressID:(ABMultiValueIdentifier)addressID {
     self = [super init];
@@ -77,8 +73,8 @@
 }
 
 
--(instancetype)initWithCoder:(NSCoder *)coder {
-    self = [super init];
+- (id)initWithCoder:(NSCoder *)coder {
+    self = [self init];
     if (self) {
         _placemark = arc_retain([coder decodeObjectForKey:@"placemark"]);
         _personID = [coder decodeInt32ForKey:@"personID"];

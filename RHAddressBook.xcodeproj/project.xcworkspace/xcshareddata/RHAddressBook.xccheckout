@@ -24,9 +24,9 @@
 		<key>5E4554BE3ABC564F566CA0D880E3536514BA6886</key>
 		<string>../..</string>
 		<key>85ECCA2619529CF5A69068C1B8A87EB82DEB53A6</key>
-		<string>../../../..</string>
+		<string>../../..</string>
 		<key>A43B3F8F1FFE63510EF5D0CFDB1DB558C0C67BF9</key>
-		<string>../../../../..</string>
+		<string>../../..</string>
 	</dict>
 	<key>IDESourceControlProjectURL</key>
 	<string>https://github.com/heardrwt/RHAddressBook.git</string>
@@ -40,17 +40,17 @@
 			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
 			<string>public.vcs.git</string>
 			<key>IDESourceControlWCCIdentifierKey</key>
-			<string>85ECCA2619529CF5A69068C1B8A87EB82DEB53A6</string>
+			<string>A43B3F8F1FFE63510EF5D0CFDB1DB558C0C67BF9</string>
 			<key>IDESourceControlWCCName</key>
-			<string>..</string>
+			<string></string>
 		</dict>
 		<dict>
 			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
 			<string>public.vcs.git</string>
 			<key>IDESourceControlWCCIdentifierKey</key>
-			<string>A43B3F8F1FFE63510EF5D0CFDB1DB558C0C67BF9</string>
+			<string>85ECCA2619529CF5A69068C1B8A87EB82DEB53A6</string>
 			<key>IDESourceControlWCCName</key>
-			<string>..</string>
+			<string></string>
 		</dict>
 		<dict>
 			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>

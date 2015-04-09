@@ -90,7 +90,18 @@
 		13D151E0193E782B003B0F45 /* RHAddressBookSharedServices.h in Headers */ = {isa = PBXBuildFile; fileRef = 13C9D510146C5D1800327D15 /* RHAddressBookSharedServices.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		13D151E1193E782B003B0F45 /* RHAddressBookGeoResult.h in Headers */ = {isa = PBXBuildFile; fileRef = 13C68598146F4E0E004D4458 /* RHAddressBookGeoResult.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		13D151E2193E782B003B0F45 /* RHARCSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = 132FD68615A2D5EE001E0D15 /* RHARCSupport.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		FDF9C0B11ACD0F3E005BCB4E /* RHAddressBookGeoResult.m in Sources */ = {isa = PBXBuildFile; fileRef = 13C68599146F4E0E004D4458 /* RHAddressBookGeoResult.m */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FDF9C1191AD35A19005BCB4E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 13C9D4F7146C5A8600327D15 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 13C9D4FF146C5A8600327D15;
+			remoteInfo = RHAddressBook;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		13D151C3193E7704003B0F45 /* Embed Frameworks */ = {
@@ -119,7 +130,7 @@
 		132DF84814F32AB000513B38 /* RHAddressBook_Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RHAddressBook_Private.h; sourceTree = "<group>"; };
 		132DF84B14F34E3100513B38 /* RHRecord_Private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RHRecord_Private.h; sourceTree = "<group>"; };
 		132FD68615A2D5EE001E0D15 /* RHARCSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RHARCSupport.h; sourceTree = "<group>"; };
-		133DF0931470EE36005330C7 /* RHAddressBookLogicTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = RHAddressBookLogicTests.xctest; path = RHAddressBookLogicTests.octest; sourceTree = BUILT_PRODUCTS_DIR; };
+		133DF0931470EE36005330C7 /* RHAddressBookLogicTests.octest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RHAddressBookLogicTests.octest; sourceTree = BUILT_PRODUCTS_DIR; };
 		133DF0991470EE36005330C7 /* RHAddressBookLogicTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "RHAddressBookLogicTests-Info.plist"; sourceTree = "<group>"; };
 		133DF09B1470EE36005330C7 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		133DF09D1470EE36005330C7 /* RHAddressBookLogicTests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RHAddressBookLogicTests.h; sourceTree = "<group>"; };
@@ -305,7 +316,7 @@
 			isa = PBXGroup;
 			children = (
 				13C9D500146C5A8600327D15 /* libRHAddressBook.a */,
-				133DF0931470EE36005330C7 /* RHAddressBookLogicTests.xctest */,
+				133DF0931470EE36005330C7 /* RHAddressBookLogicTests.octest */,
 				133DF0A81470F273005330C7 /* RHAddressBookTester.app */,
 				13D15189193E7688003B0F45 /* RHAddressBook.framework */,
 			);
@@ -439,7 +450,7 @@
 			);
 			name = RHAddressBookLogicTests;
 			productName = RHAddressBookLogicTests;
-			productReference = 133DF0931470EE36005330C7 /* RHAddressBookLogicTests.xctest */;
+			productReference = 133DF0931470EE36005330C7 /* RHAddressBookLogicTests.octest */;
 			productType = "com.apple.product-type.bundle.ocunit-test";
 		};
 		133DF0A71470F273005330C7 /* RHAddressBookTester */ = {
@@ -454,6 +465,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				FDF9C11A1AD35A19005BCB4E /* PBXTargetDependency */,
 			);
 			name = RHAddressBookTester;
 			productName = RHAddressBookTester;
@@ -606,6 +618,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FDF9C0B11ACD0F3E005BCB4E /* RHAddressBookGeoResult.m in Sources */,
 				13C9D50A146C5A8600327D15 /* RHAddressBook.m in Sources */,
 				13C9D513146C5D1800327D15 /* RHAddressBookSharedServices.m in Sources */,
 				13C9D51B146C643300327D15 /* RHSource.m in Sources */,
@@ -635,6 +648,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FDF9C11A1AD35A19005BCB4E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 13C9D4FF146C5A8600327D15 /* RHAddressBook */;
+			targetProxy = FDF9C1191AD35A19005BCB4E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		133DF09A1470EE36005330C7 /* InfoPlist.strings */ = {
@@ -703,6 +724,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "RHAddressBookTester/RHAddressBookTester-Prefix.pch";
 				GCC_THUMB_SUPPORT = NO;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				INFOPLIST_FILE = "RHAddressBookTester/RHAddressBookTester-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -723,6 +745,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "RHAddressBookTester/RHAddressBookTester-Prefix.pch";
 				GCC_THUMB_SUPPORT = NO;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				INFOPLIST_FILE = "RHAddressBookTester/RHAddressBookTester-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 5.1.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
