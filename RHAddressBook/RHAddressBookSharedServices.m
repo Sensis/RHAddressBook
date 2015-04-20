@@ -119,7 +119,7 @@ static __strong RHAddressBookSharedServices *_sharedInstance = nil;
 
         
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-        if (ABAddressBookCreateWithOptions != NULL){
+        if (&ABAddressBookCreateWithOptions != NULL){
             __block CFErrorRef errorRef = NULL;
             [_addressBookThread rh_performBlock:^{
                 _addressBook = ABAddressBookCreateWithOptions(nil, &errorRef);

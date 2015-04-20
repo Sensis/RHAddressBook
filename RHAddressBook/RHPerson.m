@@ -99,7 +99,7 @@
 
 #pragma mark - source
 -(RHSource*)inSource{
-    if (ABPersonCopySource == NULL) return nil; //availability check
+    if (&ABPersonCopySource == NULL) return nil; //availability check
     
     __block ABRecordRef sourceRef = NULL;
     [self performRecordAction:^(ABRecordRef recordRef) {
@@ -115,7 +115,7 @@
 
 #pragma mark - linked people
 -(NSArray*)linkedPeople{
-    if (ABPersonCopyArrayOfAllLinkedPeople == NULL) return nil; //availability check
+    if (&ABPersonCopyArrayOfAllLinkedPeople == NULL) return nil; //availability check
     
     NSMutableArray *linkedPeople = [NSMutableArray array];
     __block CFArrayRef linkedArrayRef = NULL;
@@ -178,7 +178,7 @@
     __block CFDataRef dataRef = NULL;
     [self performRecordAction:^(ABRecordRef recordRef) {
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 40100
-        if (ABPersonCopyImageDataWithFormat != NULL){
+        if (&ABPersonCopyImageDataWithFormat != NULL){
             dataRef = ABPersonCopyImageDataWithFormat(recordRef, imageFormat);
         } else {
 #endif
@@ -525,11 +525,12 @@
 #pragma mark - Social Profile (iOS5 +)
 // kABPersonSocialProfileProperty - (Multi Dictionary)
 -(RHMultiDictionaryValue*)socialProfiles{
-    if (&kABPersonSocialProfileProperty == NULL) return nil; //availability check
+    if (kABPersonSocialProfileProperty == kABInvalidPropertyType) return nil; //availability check
     return [self getMultiValueForPropertyID:kABPersonSocialProfileProperty];
 }
+
 -(void)setSocialProfiles:(RHMultiDictionaryValue*)socialProfiles{
-    if (&kABPersonSocialProfileProperty == NULL) return; //availability check
+    if (kABPersonSocialProfileProperty == kABInvalidPropertyType) return; //availability check
     NSError *error = nil;
     if (![self setMultiValue:socialProfiles forPropertyID:kABPersonSocialProfileProperty error:&error]){
         RHErrorLog(@"-[RHPerson %@] error:%@", NSStringFromSelector(_cmd), error);
@@ -542,7 +543,7 @@
 }
 
 +(NSData*)vCardRepresentationForPeople:(NSArray*)people{
-    if (ABPersonCreateVCardRepresentationWithPeople == NULL) return nil; //availability check
+    if (&ABPersonCreateVCardRepresentationWithPeople == NULL) return nil; //availability check
     
     NSData *result = nil;
     
@@ -592,7 +593,7 @@
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
 -(ABPersonCompositeNameFormat)compositeNameFormat{
     __block ABPersonCompositeNameFormat format = [RHAddressBook compositeNameFormat];
-    if (ABPersonGetCompositeNameFormatForRecord != NULL){
+    if (&ABPersonGetCompositeNameFormatForRecord != NULL){
         [self performRecordAction:^(ABRecordRef recordRef) {
             format = ABPersonGetCompositeNameFormatForRecord(recordRef);
         } waitUntilDone:YES];
