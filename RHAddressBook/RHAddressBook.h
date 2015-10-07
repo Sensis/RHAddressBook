@@ -78,7 +78,7 @@ typedef NS_ENUM(NSUInteger, RHAuthorizationStatus) {
 
 @interface RHAddressBook : NSObject
 
--(instancetype)init NS_DESIGNATED_INITIALIZER; //create an instance of the addressbook (iOS6+ may return nil, signifying an access error. Error is logged to console)
+-(instancetype)init; //create an instance of the addressbook (iOS6+ may return nil, signifying an access error. Error is logged to console)
 
 +(BOOL)addressBookAvailable;
 +(RHAuthorizationStatus)authorizationStatus; // pre iOS6+ will always return RHAuthorizationStatusAuthorized

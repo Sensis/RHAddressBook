@@ -59,7 +59,7 @@ typedef RHMutableMultiValue RHMutableMultiDictionaryValue;
 @property (readonly) ABMultiValueRef multiValueRef;
 
 //init
--(instancetype)initWithMultiValueRef:(ABMultiValueRef)multiValueRef NS_DESIGNATED_INITIALIZER; //passing NULL to init is invalid
+-(instancetype)initWithMultiValueRef:(ABMultiValueRef)multiValueRef; //passing NULL to init is invalid
                        
 //accessors
 @property (nonatomic, readonly) ABPropertyType propertyType;

@@ -38,7 +38,7 @@
     @autoreleasepool {
         RHLog(@"spawned thread: %@", [NSThread currentThread]);
         //schedule a timer on the runloop so it wont return immediately
-        NSTimer *timer = [NSTimer timerWithTimeInterval:10.0 invocation:nil repeats:YES];
+        NSTimer *timer = [NSTimer timerWithTimeInterval:10.0 invocation:[NSInvocation new] repeats:YES];
         [[NSRunLoop currentRunLoop] addTimer:timer forMode:NSDefaultRunLoopMode];
         
         do {
