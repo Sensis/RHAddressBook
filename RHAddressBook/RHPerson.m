@@ -183,7 +183,7 @@
         } else {
 #endif
             //if not available, default to the pre-iOS 4 code.
-            dataRef = ABPersonCopyImageData(_recordRef);
+//            dataRef = ABPersonCopyImageData(_recordRef);
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 40100
         }
 #endif

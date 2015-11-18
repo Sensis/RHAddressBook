@@ -219,7 +219,7 @@
 
 +(NSString*)hashForString:(NSString*)string{
     if (! string) return nil;
-    if (!CC_MD5) return nil; //availability check
+    if (!&CC_MD5) return nil; //availability check
 
     //md5 hash the string    
     const char *str = [string UTF8String];

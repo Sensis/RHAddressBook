@@ -334,7 +334,7 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
     
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
     
-    if (&ABAddressBookRequestAccessWithCompletion != NULL){
+    if (/* DISABLES CODE */ (/* DISABLES CODE */ (&ABAddressBookRequestAccessWithCompletion)) != NULL){
         
         [self performAddressBookAction:^(ABAddressBookRef addressBookRef) {
 
@@ -352,10 +352,10 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
 #endif //end iOS6+
 
     //else, run the completion block async (access is always allowed pre iOS6)
-    dispatch_async(dispatch_get_main_queue(), ^{
-        completion(YES, nil);
-        Block_release((__bridge void *)completion);
-    });
+//    dispatch_async(dispatch_get_main_queue(), ^{
+//        completion(YES, nil);
+//        Block_release((__bridge void *)completion);
+//    });
 }
 
 
@@ -683,7 +683,7 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
             if (mutablePeopleRefs){
 
                 //sort 
-                CFArraySortValues(mutablePeopleRefs, CFRangeMake(0, CFArrayGetCount(mutablePeopleRefs)), (CFComparatorFunction) ABPersonComparePeopleByName, (ABPersonSortOrdering) ordering);
+                CFArraySortValues(mutablePeopleRefs, CFRangeMake(0, CFArrayGetCount(mutablePeopleRefs)), (CFComparatorFunction) ABPersonComparePeopleByName, nil);
                 result = arc_retain([self peopleForABRecordRefs:mutablePeopleRefs]);
                 CFRelease(mutablePeopleRefs);
                 
@@ -959,7 +959,7 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
 }
 
 -(NSArray*)addPeopleFromVCardRepresentation:(NSData*)representation toSource:(RHSource*)source{
-    if (!ABPersonCreatePeopleInSourceWithVCardRepresentation) return nil; //availability check
+    if (!&ABPersonCreatePeopleInSourceWithVCardRepresentation) return nil; //availability check
 
     NSMutableArray *newPeople = [NSMutableArray array];
 
@@ -986,7 +986,7 @@ BOOL rh_dispatch_is_current_queue_for_addressbook(RHAddressBook *addressBook){
 }
 
 -(NSData*)vCardRepresentationForPeople:(NSArray*)people{
-    if (!ABPersonCreateVCardRepresentationWithPeople) return nil; //availability check
+    if (!&ABPersonCreateVCardRepresentationWithPeople) return nil; //availability check
     return [RHPerson vCardRepresentationForPeople:people];
 }
 
