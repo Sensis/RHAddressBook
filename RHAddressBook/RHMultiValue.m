@@ -146,7 +146,7 @@
 }
 -(BOOL)isEqualToMultiValue:(RHMultiValue*)otherMultiValue{
     
-    if (![self count] == [otherMultiValue count]) return NO;
+    if (!([self count] == [otherMultiValue count])) return NO;
     
     for (int i = 0; i < [self count]; i++) {
         if (! [[self labelAtIndex:i] isEqualToString:[otherMultiValue labelAtIndex:i]]) return NO;
